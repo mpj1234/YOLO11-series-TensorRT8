@@ -11,7 +11,7 @@
 
 Logger gLogger;
 using namespace nvinfer1;
-const int kOutputSize = kMaxNumOutputBbox * (sizeof(Detection) - sizeof(float) * 51) / sizeof(float) + 1;
+const int kOutputSize = kMaxNumOutputBbox * sizeof(Detection) / sizeof(float) + 1;
 const static int kOutputSegSize = 32 * (kInputH / 4) * (kInputW / 4);
 
 static cv::Rect get_downscale_rect(float bbox[4], float scale) {
@@ -111,7 +111,7 @@ void prepare_buffer(ICudaEngine* engine, float** input_buffer_device, float** ou
     // Note that indices are guaranteed to be less than IEngine::getNbBindings()
     const int inputIndex = engine->getBindingIndex(kInputTensorName);
     const int outputIndex = engine->getBindingIndex(kOutputTensorName);
-    const int outputIndex_seg = engine->getBindingIndex("proto");
+    const int outputIndex_seg = engine->getBindingIndex(kProtoTensorName);
 
     assert(inputIndex == 0);
     assert(outputIndex == 1);
@@ -169,8 +169,9 @@ void infer(IExecutionContext& context, cudaStream_t& stream, void** buffers, flo
     CUDA_CHECK(cudaStreamSynchronize(stream));
 }
 
-bool parse_args(int argc, char** argv, std::string& wts, std::string& engine, std::string& img_dir, std::string& type,
-                std::string& cuda_post_process, std::string& labels_filename, float& gd, float& gw, int& max_channels) {
+bool parse_args(int argc, char** argv, std::string& wts, std::string& engine, std::string& img_dir,
+                std::string& type, std::string& cuda_post_process, std::string& labels_filename, float& gd,
+                float& gw, int& max_channels) {
     if (argc < 4)
         return false;
     if (std::string(argv[1]) == "-s" && argc == 5) {
